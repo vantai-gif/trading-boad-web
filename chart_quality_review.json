@@ -1,0 +1,631 @@
+{
+  "review_metadata": {
+    "project": "Trading-board-web",
+    "review_scope": "Candlestick chart quality review against business requirements and reference image",
+    "review_date": "2026-10-21",
+    "reviewer_role": "Quality and correctness reviewer",
+    "developer_role": "Code author",
+    "code_changed": false,
+    "note": "This is a review report, not a source-code patch."
+  },
+  "overall_assessment": {
+    "status": "Not fully accepted",
+    "summary": "The GIF route and toolbar order work, but Luffy is currently a separate static element above the chart. The required next change is to place Luffy directly above the progress bar and bind its left-to-right movement to the same clamped percentage as the chart animation."
+  },
+  "issues": [
+    {
+      "id": "CHART-002",
+      "severity": "high",
+      "title": "The first-day reference price is not unambiguously the previous trading day close.",
+      "locations": [
+        "main.py:170-172",
+        "chart.py:109-112"
+      ],
+      "conversation": {
+        "current_implementation": "The first row is used as the initial previous close for the first displayed day.",
+        "observed_problem": "The CSV schema does not clearly identify that value as the previous trading day close. Using an undocumented value can produce incorrect floor, ceiling, and color calculations.",
+        "required_behavior": "Require an explicit previous_close/reference value or document and validate the first-row convention."
+      },
+      "why_it_is_wrong_or_weak": [
+        "The business rule requires the previous trading day close.",
+        "The first row field is not self-describing.",
+        "An incorrect reference affects the entire first displayed day."
+      ],
+      "impact": "The first displayed day may have incorrect trading limits and trend colors.",
+      "recommended_solutions": [
+        "Add an explicit previous_close/reference field.",
+        "Require and document a dedicated previous-day CSV row.",
+        "Return a clear validation error when the required previous close is missing.",
+        "Add date or row identifiers to prevent ordering mistakes."
+      ],
+      "acceptance_criteria": [
+        "A test proves the first reference equals the previous trading day close.",
+        "Missing previous-close data produces a clear validation error."
+      ]
+    },
+    {
+      "id": "CHART-003",
+      "severity": "high",
+      "title": "The high/low guide lines are calculated from the full dataset instead of visible animation data.",
+      "locations": [
+        "static/js/chart.js:124-131",
+        "main.py:186-195",
+        "chart.py:161-163"
+      ],
+      "conversation": {
+        "current_implementation": "The guide values are calculated once from every day in the dataset.",
+        "observed_problem": "The chart can show a high or low created by a day that has not appeared yet.",
+        "required_behavior": "For visible days, high must be max(day.high) and low must be min(day.low), and both must update as animation reveals new data."
+      },
+      "why_it_is_wrong_or_weak": [
+        "Future data affects the current animation.",
+        "The guide lines do not represent the data already shown.",
+        "PNG and web rendering can use inconsistent definitions."
+      ],
+      "impact": "Viewers can misread the current high/low range and animation progress.",
+      "recommended_solutions": [
+        "Calculate dynamic_high and dynamic_low from visible days.",
+        "Update labels and lines after each visible-day change.",
+        "Use the same dynamic rule in chart.py and chart.js."
+      ],
+      "acceptance_criteria": [
+        "The high line only increases or stays equal as visible data grows.",
+        "The low line only decreases or stays equal.",
+        "No unseen day affects the current lines."
+      ]
+    },
+    {
+      "id": "CHART-007",
+      "severity": "low",
+      "title": "chart.py contains a private API warning and unused imports.",
+      "locations": [
+        "chart.py:21",
+        "chart.py:23",
+        "chart.py:176"
+      ],
+      "conversation": {
+        "current_implementation": "The PNG script runs, but its imports are not fully aligned with the public Matplotlib API.",
+        "observed_problem": "Static analysis reports a private API usage warning and unused imports.",
+        "required_behavior": "Use public imports and remove unused dependencies."
+      },
+      "why_it_is_wrong_or_weak": [
+        "Private API usage may break after a library upgrade.",
+        "Unused imports add maintenance noise."
+      ],
+      "impact": "Low immediate impact, but increased compatibility and maintenance risk.",
+      "recommended_solutions": [
+        "Import FuncFormatter from its public module.",
+        "Remove unused imports.",
+        "Run static analysis and the PNG script after the change."
+      ],
+      "acceptance_criteria": [
+        "No related static-analysis warnings remain.",
+        "The PNG script still completes successfully."
+      ]
+    },
+    {
+      "id": "CHART-009",
+      "severity": "high",
+      "title": "The green and red range bands are too faint and do not clearly represent overlap.",
+      "locations": [
+        "static/js/chart.js:205-238",
+        "chart.py:226-235"
+      ],
+      "conversation": {
+        "current_implementation": "The lower panel draws separate green and red bands around the reference line.",
+        "observed_problem": "Low opacity reduces contrast, and fixed reference-to-ceiling/floor-to-reference polygons can imply a simplistic separation when ranges overlap.",
+        "required_behavior": "Bands must remain readable, preserve the close line, and clearly represent overlapping or crossing ranges."
+      },
+      "why_it_is_wrong_or_weak": [
+        "The bands are difficult to see on the black background.",
+        "The current layering can be misread when ranges overlap.",
+        "The close line can lose visual priority."
+      ],
+      "impact": "Users may misunderstand the direction and size of the trading range.",
+      "recommended_solutions": [
+        "Increase contrast carefully without hiding the close line.",
+        "Render segments or intersections deliberately when ranges overlap.",
+        "Draw the close line after the fills.",
+        "Test desktop and small-screen rendering."
+      ],
+      "acceptance_criteria": [
+        "Both bands are clearly visible.",
+        "Overlapping ranges are represented correctly.",
+        "The close line remains prominent."
+      ]
+    },
+    {
+      "id": "CHART-012",
+      "severity": "high",
+      "title": "A fixed 360-day X-axis compresses candles to the left during animation.",
+      "locations": [
+        "static/js/chart.js:82-85",
+        "static/js/chart.js:122-134"
+      ],
+      "conversation": {
+        "current_implementation": "The frontend now auto-fits the X-axis to displayCount instead of always using the full 360-day width. However, candle positions still use original day indices while candleDays is filtered, so spacing and candle width are not consistently based on the actually rendered candles.",
+        "observed_problem": "The left-cluster problem is reduced during early animation, but the issue is not fully resolved: filtered candles can remain unevenly spaced, and the current rendering still produces thin, noisy candles that do not match the readable reference style.",
+        "required_behavior": "Use one consistent display coordinate system for the rendered candle list. The X-axis, candle positions, candle widths, and labels must all reflect the same visible/filtered sequence while preserving each candle day number."
+      },
+      "why_it_is_wrong_or_weak": [
+        "Auto-fit uses displayCount, but candle width is calculated from gaps between filtered candles while positions are calculated from original day indices.",
+        "The chart can still contain visually empty gaps where filtered days were removed.",
+        "The current implementation does not define whether the X-axis represents calendar/trading time or only rendered candles.",
+        "The screenshot at day 364 shows that fitting the axis alone does not make the candle shapes clear."
+      ],
+      "impact": "CHART-012 is only partially resolved: the axis occupies the canvas better, but the rendered candle sequence still does not have a stable, readable layout.",
+      "reproduction": [
+        "Open the web page and run the animation until the full 364-day view.",
+        "Compare the candle positions with the visible candle list after the volatility filter removes quiet days.",
+        "Observe thin candles, irregular spacing, and no clear distinction between a missing quiet day and a rendered candle gap.",
+        "Repeat at an early and middle animation point to verify that the layout rule changes with visibility."
+      ],
+      "recommended_solutions": [
+        "Create a renderedCandles list first, then assign each rendered candle a sequential display index for X positioning and width.",
+        "Keep the original day number separately for labels, tooltips, and chronological meaning.",
+        "Choose and document one mode: compressed display of rendered candles, or proportional time display with a minimum readable candle width and explicit gaps.",
+        "Use a minimum body width, a consistent wick width, and a visible outline/contrast for tiny bodies instead of silently forcing every body to 2 pixels.",
+        "Render the reference marker as a separate subtle guide or short line that cannot visually merge with the candle body.",
+        "Validate the result at early, middle, and final animation points against the supplied reference image."
+      ],
+      "acceptance_criteria": [
+        "At early, middle, and final animation points, rendered candles occupy a readable area without unexplained left compression or irregular empty gaps.",
+        "Candle X positions and widths are calculated from the same rendered candle list.",
+        "Original day numbers remain correct even when quiet days are filtered.",
+        "Small candle bodies, wicks, and reference markers remain visually distinguishable.",
+        "The API data and day count remain unchanged."
+      ],
+      "status": "partially_resolved"
+    },
+    {
+      "id": "CHART-013",
+      "severity": "high",
+      "status": "open",
+      "title": "Candlestick bodies and markers are too thin and visually noisy",
+      "locations": [
+        "static/js/chart.js:157-185",
+        "static/css/style.css:1-200"
+      ],
+      "conversation": {
+        "current_implementation": "Each selected day is drawn with a single 1.2px wick, a solid rectangle whose height is forced to at least 2px, and a short reference line using the same candle area. Candle color is selected from the closing point.",
+        "observed_problem": "The supplied screenshot shows a dense field of narrow green, red, blue, and purple strokes. Many bodies are only a few pixels wide or high, wicks and reference markers overlap them, and the chart reads as colored noise rather than clear OHLC candles. There is no clear visual separation between the body, wick, reference marker, and adjacent candle.",
+        "required_behavior": "Render a deliberate, readable OHLC candle style: consistent body width, visible body outline or contrast, centered wick, controlled spacing, and a reference marker that does not merge with the candle. The style must remain readable when adjacent candles are close together and when open equals close."
+      },
+      "why_it_is_wrong_or_weak": [
+        "The body width is derived from the nearest filtered-candle gap but is capped at 12px, so dense regions produce very thin bodies.",
+        "The minimum 2px body height makes small movements look like arbitrary bars rather than meaningful OHLC bodies.",
+        "The wick, body, and reference marker use multiple colors and overlap in the same small area.",
+        "Quiet-day filtering removes some candles but does not provide a stable visual grouping or aggregation for the remaining sequence.",
+        "The color of the whole candle follows the close classification, while the chart legend also assigns business meaning to other colors, making the visual rule unclear."
+      ],
+      "impact": "The current chart is technically populated but visually difficult to read. Users cannot reliably distinguish bullish/bearish bodies, intraday range, reference level, or a sequence of nearby candles.",
+      "reproduction": [
+        "Open the chart after all 364 days are visible.",
+        "Inspect the dense regions around the first major peak and the later low-price section.",
+        "Observe that many candles appear as thin multicolor lines with overlapping wicks and markers instead of clean candle bodies."
+      ],
+      "recommended_solutions": [
+        "Redesign the candle renderer around an explicit candle layout model rather than drawing each item directly from pixel gaps.",
+        "Use a stable body width based on available plot width and rendered-candle count, with safe minimum and maximum values.",
+        "Draw the wick behind the body, use a contrasting body outline, and use a smaller neutral reference tick placed outside or beside the body.",
+        "Define a clear up/down/flat color rule and avoid using floor/ceiling colors for the entire OHLC candle unless that behavior is explicitly required.",
+        "For open-equals-close candles, use a visible doji marker with a consistent minimum size instead of a generic 2px rectangle.",
+        "If 364 individual candles cannot remain readable at the current canvas width, aggregate adjacent quiet days or provide a zoom/detail mode while preserving raw data."
+      ],
+      "acceptance_criteria": [
+        "The candle body, wick, and reference marker are visually distinguishable at desktop width.",
+        "Dense regions no longer render as an unstructured multicolor brush.",
+        "Bullish, bearish, flat, floor, and ceiling behavior is documented and visually consistent with the legend.",
+        "The candle layout remains readable at early, middle, and final animation points.",
+        "The raw 364-day payload is preserved even if the display aggregates or filters candles."
+      ]
+    },
+    {
+      "id": "CHART-014",
+      "severity": "medium",
+      "status": "open",
+      "title": "Insufficient chart padding makes candles touch the plot border and the VND label overlaps Y-axis numbers",
+      "locations": [
+        "static/js/chart.js:73-88",
+        "static/js/chart.js:97-119"
+      ],
+      "conversation": {
+        "current_implementation": "The chart uses PAD.left = 62 and PAD.right = 84. Candles are positioned from the left plot boundary to the right plot boundary, while Y-axis numbers are drawn at PAD.left - 8 and the vertical VND label is drawn at x = 20.",
+        "observed_problem": "The current full-run view is stable, but the first and last candles sit too close to the panel border. The vertical VND label is also too close to the Y-axis numbers, so the label visually touches or collides with values such as 20,000 and 15,000.",
+        "required_behavior": "Reserve a clear visual margin inside the plot for the first and last candle, and reserve a separate left gutter for the VND label, Y-axis numbers, and plot border. These elements must remain separated at the tested canvas width and after resize."
+      },
+      "why_it_is_wrong_or_weak": [
+        "xPos maps the first and last visible candle directly to the plot boundaries, leaving no breathing room for the candle body and wick.",
+        "The left padding is shared by the plot border and labels without a dedicated gutter hierarchy.",
+        "The VND label at x = 20 is too close to the numeric labels rendered near PAD.left - 8.",
+        "The overlap reduces readability and makes the chart look cramped even though the data and animation are stable.",
+        "The current fixed pixel offsets are not validated for narrower or resized canvases."
+      ],
+      "impact": "The chart is technically functional but visually cramped. Border-adjacent candles can be clipped or appear attached to the frame, and users can misread the Y-axis because VND and numeric labels are not clearly separated.",
+      "reproduction": [
+        "Open the chart after all 364 days are visible.",
+        "Inspect the first and last rendered candles in the upper panel; they are positioned directly against the plot edges.",
+        "Inspect the left side of either panel; the vertical VND text is close to or overlaps the Y-axis numbers.",
+        "Resize the browser or use a narrower viewport to make the label collision and cramped edges more apparent."
+      ],
+      "recommended_solutions": [
+        "Add an inner horizontal chart margin, for example by mapping candle positions from plotLeft + candleInset to plotRight - candleInset instead of directly to both borders.",
+        "Calculate the inset from candle width and wick width so the first and last candle remain fully visible.",
+        "Increase and structure the left gutter: place VND farther left, keep numeric labels in a separate column, and keep the plot border to the right of both.",
+        "Replace hard-coded label coordinates with measurements based on font size and available width where practical.",
+        "Verify the spacing at full, early, and middle animation points and at a narrow responsive viewport."
+      ],
+      "acceptance_criteria": [
+        "The first and last candle have visible space between their wick/body and the plot border.",
+        "No candle body or wick is clipped by the chart frame.",
+        "VND is visually separate from every Y-axis number in both panels.",
+        "The spacing remains readable after browser resize and during animation.",
+        "The chart data, candle ordering, and API payload remain unchanged."
+      ]
+    },
+    {
+      "id": "CHART-015",
+      "severity": "medium",
+      "status": "open",
+      "title": "Redesign the visual appearance without changing the chart structure",
+      "locations": [
+        "templates/index.html",
+        "static/css/style.css",
+        "static/js/chart.js",
+        "static/js/app.js"
+      ],
+      "conversation": {
+        "request": "Redesign the web page appearance to feel modern, minimal, spacious, and polished while preserving the existing chart structure and user flow.",
+        "design_palette": {
+          "pastel_blue": "#BCD9F2",
+          "white": "#FFFFFF",
+          "dark_blue": "#1B2A4A"
+        },
+        "visual_direction": [
+          "Use pastel blue, white, and dark blue as the primary visual system.",
+          "Use clean sans-serif typography with clear hierarchy and accessible contrast.",
+          "Use soft rounded corners, generous whitespace, and consistent spacing.",
+          "Use smooth hover and focus transitions on buttons, upload controls, selects, and cards.",
+          "Keep the interface modern and minimal; avoid unnecessary decorative elements."
+        ],
+        "must_preserve": [
+          "Keep the current two-panel chart structure: upper candlestick panel and lower range/close panel.",
+          "Keep the existing header, controls, status row, legend, warning area, chart card, and footer roles.",
+          "Keep the current animation, reset, speed selection, CSV upload, API behavior, and chart data semantics.",
+          "Do not remove chart labels, legend meanings, warning feedback, or accessibility labels.",
+          "Do not change the number of data points returned by the API or the meaning of OHLC/reference/floor/ceiling values."
+        ],
+        "implementation_expectation": "The implementation may reorganize class names or split responsibilities cleanly across HTML, CSS, and JavaScript, but it must remain complete, maintainable, and directly runnable. Do not provide pseudocode, placeholders, ellipses, or truncated sections."
+      },
+      "why_it_is_needed": [
+        "The current dark, high-contrast presentation does not match the requested pastel-blue and white product style.",
+        "The existing page needs clearer visual hierarchy and more whitespace without changing the information architecture.",
+        "Interactive controls and cards need visible hover/focus feedback to feel responsive and polished.",
+        "The chart colors need to remain distinguishable and readable after moving from a black background to a light theme."
+      ],
+      "impact": "This is a presentation-layer redesign. Incorrect implementation could accidentally change chart structure, data behavior, control behavior, or the meaning of chart colors.",
+      "implementation_guidance": [
+        "Define theme variables in CSS for the three required colors and related derived colors; avoid scattering hard-coded colors throughout the stylesheet.",
+        "Use a white or very light page background, pastel-blue accents/surfaces, and dark-blue text/borders.",
+        "Apply a consistent border radius and shadow scale to cards, controls, and buttons.",
+        "Add transition effects for background, border, color, transform, and shadow where appropriate; keep motion subtle and avoid distracting animation.",
+        "Provide :hover, :focus-visible, and disabled states for all interactive controls.",
+        "Update the canvas palette in chart.js so grid lines, axes, candles, reference, floor, ceiling, range bands, and labels remain legible on the new background.",
+        "Preserve semantic HTML, keyboard accessibility, readable contrast, and responsive behavior on narrow screens.",
+        "Keep comments limited to non-obvious design or rendering decisions; do not replace complete code with comments."
+      ],
+      "acceptance_criteria": [
+        "The page visibly uses #BCD9F2, #FFFFFF, and #1B2A4A as its primary visual palette.",
+        "The header, status row, legend, warning banner, chart card, controls, and footer retain their current functional roles and order.",
+        "The upper candlestick panel and lower range/close panel remain intact and continue to render the same data.",
+        "Buttons, cards, upload control, and select control have smooth hover and clear keyboard focus states.",
+        "Canvas labels, grid, candles, reference/floor/ceiling indicators, range bands, and close line remain readable in the light theme.",
+        "Animation, reset, speed selection, CSV upload, warnings, and API requests continue to work without behavior changes.",
+        "The layout remains usable at desktop and narrow viewport widths.",
+        "The delivered implementation contains complete HTML/CSS/JS source with no omitted or placeholder code."
+      ],
+      "validation_plan": [
+        "Load the page and verify the visual hierarchy and required color palette.",
+        "Run the animation from the initial state through the final day and verify both chart panels.",
+        "Test reset, speed selection, CSV upload, warning display, and keyboard focus.",
+        "Resize to a narrow viewport and check that controls, legend, chart, and footer remain usable.",
+        "Check that the API payload and day count are unchanged before and after the visual redesign."
+      ]
+    },
+    {
+      "id": "CHART-016",
+      "severity": "medium",
+      "status": "open",
+      "title": "Move the existing Run Chart and Reset controls below the chart",
+      "locations": [
+        "templates/index.html",
+        "static/css/style.css",
+        "static/js/app.js"
+      ],
+      "conversation": {
+        "request": "Remove the newly proposed local playback controls. Do not add Pause/Resume, Rewind 5 seconds, or day/date navigation controls. Instead, move the existing Run Chart and Reset buttons from the top header controls to a clearly visible control row below the chart.",
+        "remove_or_do_not_add": [
+          "Do not add a Pause/Resume button.",
+          "Do not add a Rewind 5 seconds button.",
+          "Do not add a date selector, day selector, range slider, or direct date navigation control.",
+          "Remove any implementation, markup, styles, or JavaScript state introduced specifically for those controls if present."
+        ],
+        "required_layout": [
+          "The existing Run Chart button and Reset button must appear in a dedicated toolbar directly below the chart canvas or chart card content.",
+          "The toolbar must be visually associated with the chart and easy to reach while reviewing the chart.",
+          "Keep the existing CSV upload control in the header unless there is a separate design decision to move it.",
+          "Keep the existing two-panel chart structure unchanged."
+        ],
+        "required_behavior": [
+          "Run Chart keeps its current start/pause-toggle behavior if that behavior already exists; do not introduce a second playback system.",
+          "Reset keeps its current behavior of stopping playback, returning the visible day to 0, and redrawing the chart.",
+          "Moving the buttons must not change animation timing, speed selection, data loading, CSV upload, warning handling, or API behavior."
+        ]
+      },
+      "why_it_is_needed": [
+        "The previous proposal added controls that are no longer wanted and would make the interface unnecessarily complex.",
+        "The existing Run Chart and Reset actions are sufficient for the required workflow.",
+        "Placing those actions below the chart keeps them close to the content without adding new playback semantics."
+      ],
+      "impact": "This is a layout and interaction-surface change only. The chart data, animation engine, two-panel structure, and existing button behavior must remain unchanged.",
+      "implementation_guidance": [
+        "Move the existing button elements rather than duplicating them, so current event listeners and state remain the single source of truth.",
+        "Use a dedicated semantic control row below the canvas, with clear spacing and alignment.",
+        "Preserve accessible button labels, keyboard focus, hover states, and responsive behavior.",
+        "Ensure the buttons do not overlap the canvas, footer, legend, or warning banner.",
+        "If the visual redesign in CHART-015 is implemented, style this toolbar consistently with the new card and control system."
+      ],
+      "acceptance_criteria": [
+        "No Pause/Resume, Rewind 5 seconds, date selector, day selector, range slider, or direct date navigation control is present.",
+        "Exactly one Run Chart button and one Reset button are visible in the dedicated toolbar below the chart.",
+        "Run Chart and Reset continue to perform their existing actions without duplicate timers or changed animation behavior.",
+        "The chart header no longer contains duplicate Run Chart or Reset controls.",
+        "The toolbar remains usable with keyboard navigation and on narrow screens.",
+        "The chart canvas, two-panel structure, API payload, CSV upload, speed selection, warnings, and footer behavior remain unchanged."
+      ],
+      "validation_plan": [
+        "Load the page and verify the Run Chart and Reset buttons are located below the chart.",
+        "Verify that no unwanted playback or date-navigation controls are rendered.",
+        "Start the chart, confirm animation runs, then use Reset and confirm the day returns to 0.",
+        "Verify the speed selector, CSV upload, warning banner, and API data still work.",
+        "Resize to a narrow viewport and confirm the control row remains visible and usable."
+      ]
+    },
+    {
+      "id": "CHART-017",
+      "severity": "medium",
+      "status": "open",
+      "title": "Add the Luffy GIF above the chart and a percentage-only progress bar beside Run Chart",
+      "locations": [
+        "link_anh_luffy_chay_transparent.gif.gif",
+        "templates/index.html",
+        "static/css/style.css",
+        "static/js/app.js"
+      ],
+      "conversation": {
+        "asset": "The newly added asset is link_anh_luffy_chay_transparent.gif.gif. Verify whether the duplicated .gif extension is intentional; do not silently rename or delete the user-provided asset.",
+        "request": "Display the small Luffy GIF immediately above the percentage progress bar. Animate the Luffy position from left to right so it follows the chart/video progress percentage.",
+        "required_layout": [
+          "Place the Luffy GIF in the same progress component as the progress bar, directly above it rather than in a separate centered area above the chart.",
+          "Align the GIF movement track with the full usable width of the progress bar.",
+          "Keep the percentage-only progress indicator beside the Run Chart button in the control row below the chart.",
+          "Keep the existing two-panel chart structure unchanged.",
+          "Keep Reset in the same control row and do not add Pause/Resume, Rewind, or date-navigation controls."
+        ],
+        "required_behavior": [
+          "Before the chart starts, Luffy is at the far-left start of the progress track and the percentage is 0%.",
+          "As the visible chart day increases, Luffy moves smoothly from left to right according to the same percentage used by the progress bar.",
+          "At exactly 100%, Luffy reaches the far-right end of the track and must not move beyond the track.",
+          "Reset returns Luffy to the far-left position and the percentage to 0%.",
+          "CSV upload resets Luffy and recalculates movement from the new dataset count.",
+          "Luffy movement must reuse the existing render/update flow and must not create a second timer.",
+          "If the GIF cannot load, hide the media element gracefully while leaving the chart and progress bar functional."
+        ],
+        "size_requirement": [
+          "Make the progress track visibly larger: approximately 240px wide and 24px high on desktop.",
+          "Make the Luffy marker larger: approximately 72px wide and 58px high while keeping it contained within the track.",
+          "Keep a balanced responsive size on narrow screens without overlapping the percentage or buttons."
+        ],
+        "orientation_requirement": [
+          "Flip the GIF horizontally so Luffy faces right, matching the left-to-right progress direction.",
+          "Apply the horizontal flip without breaking the existing position calculation or causing overflow at 0% or 100%.",
+          "Keep the marker vertically centered in the space above the progress bar."
+        ],
+        "alignment_requirement": [
+          "Center the complete Luffy and progress-bar component in the main chart toolbar on desktop.",
+          "Keep the percentage label attached to the centered component so it does not pull the track off-center.",
+          "Preserve the responsive mobile layout and keep the component associated with the Run Chart control.",
+          "On desktop, shift the centered Luffy and progress-bar group 2cm to the left as a single unit; keep the mobile responsive fallback unchanged."
+        ],
+        "percentage_alignment_requirement": [
+          "Place the percentage label immediately beside the progress bar and align it vertically with the bar, not with the taller Luffy area.",
+          "Keep the percentage readable at 0%, intermediate values, and 100% without overlapping the track or action buttons.",
+          "Preserve the existing 2cm left offset for the complete progress group on desktop."
+        ]
+      },
+      "why_it_is_needed": [
+        "The GIF provides the requested visual element above the chart.",
+        "A percentage-only progress indicator gives a quick overview of animation progress without adding unwanted playback controls.",
+        "Placing progress beside Run Chart keeps the status close to the action that starts the animation."
+      ],
+      "impact": "The current GIF is displayed separately above the chart and does not yet act as a visual progress marker. Without binding its position to the percentage, users cannot see Luffy advancing with the chart/video.",
+      "implementation_guidance": [
+        "Use a progress-track wrapper containing a Luffy layer above and a progress bar below.",
+        "Position Luffy with a percentage-based transform or left value derived from the same clamped progress value used by chartProgress.",
+        "Account for the GIF width so its center or leading edge stays within the track at both 0% and 100%.",
+        "Use CSS transition for smooth movement between animation ticks, respecting prefers-reduced-motion.",
+        "Keep the visible progress text as percentage only and keep Run Chart/Reset controls outside the track but in the same toolbar.",
+        "Do not infer progress from GIF frame timing; the chart animation state is the source of truth.",
+        "Keep the asset route working and provide a fallback when the GIF fails to load."
+      ],
+      "acceptance_criteria": [
+        "The Luffy GIF is visibly located immediately above the progress bar.",
+        "The progress bar and Luffy marker are visibly larger, balanced above the bar, and easy to see.",
+        "The Luffy and progress-bar group is visually centered in the main toolbar on desktop.",
+        "On desktop, the complete Luffy/progress group is shifted 2cm left from the toolbar center without separating its elements.",
+        "The percentage label is vertically aligned with and immediately beside the progress bar, with no overlap.",
+        "Luffy faces right and remains inside the track at both 0% and 100%.",
+        "At 0%, Luffy is aligned to the left start of the bar.",
+        "At approximately 50%, Luffy is near the middle of the bar.",
+        "At 100%, Luffy is aligned to the right end without overflowing the track.",
+        "Luffy movement and percentage remain synchronized during animation.",
+        "Reset returns both Luffy and the percentage to 0%.",
+        "No second timer, playback control, rewind control, or date-navigation control is introduced.",
+        "The chart, Run Chart, Reset, CSV upload, and missing-GIF fallback continue to work."
+      ],
+      "validation_plan": [
+        "Load the page and confirm Luffy is directly above the progress track.",
+        "Confirm the enlarged Luffy is vertically balanced above the bar and faces right.",
+        "Check the toolbar bounding boxes and confirm the progress group center matches the toolbar center.",
+        "Measure the progress group center against the toolbar center and confirm the desktop offset is 2cm to the left.",
+        "Check that the percentage label shares the progress bar baseline/vertical center and remains readable at 0%, intermediate, and 100%.",
+        "Verify the initial state is Luffy-left and 0%.",
+        "Run the chart and inspect Luffy at early, middle, and final progress points.",
+        "Verify Luffy reaches the right edge exactly when the percentage reaches 100%.",
+        "Press Reset and confirm Luffy returns to the left and the percentage returns to 0%.",
+        "Upload another valid CSV and verify movement uses the new count.",
+        "Test a missing GIF route and confirm the chart and percentage still function."
+      ]
+    },
+    {
+      "id": "CHART-018",
+      "severity": "medium",
+      "status": "partially_resolved",
+      "title": "Progress bar placement and Luffy GIF visibility do not match the requested layout",
+      "locations": [
+        "templates/index.html:50-62",
+        "static/css/style.css:143-158",
+        "static/js/app.js:8-20"
+      ],
+      "conversation": {
+        "requested_layout": "The small Luffy GIF must appear above the chart. The percentage progress bar must be placed on the left side of the Run Chart button in the control row below the chart.",
+        "current_implementation": "After restarting the current source, the GIF route returns HTTP 200 and the rendered toolbar order is progress percentage, Run Chart, Reset. The earlier placement mismatch is resolved in the current source.",
+        "observed_problem": "The percentage cannot be validated through a full animation run because the current server cannot find the default abf.csv, so the page remains at 0/0 and the GIF/progress runtime synchronization is not fully verified.",
+        "required_behavior": "The final rendered page must visibly show a small Luffy GIF above the chart and a percentage-only progress indicator immediately to the left of Run Chart. Reset remains in the same toolbar. The progress must continue to update from the existing animation state."
+      },
+      "why_it_is_wrong_or_weak": [
+        "The current DOM order places progress after Run Chart, which is the opposite of the requested left-of-button placement.",
+        "The screenshot does not show the progress percentage, so the user cannot verify animation progress beside the action button.",
+        "The GIF may be hidden, unavailable through the /assets route, outside the captured viewport, or visually too large rather than appearing as a small element above the chart.",
+        "The current CSS changes the progress row to a separate full-width row on narrow screens, so its relationship to Run Chart is not preserved responsively."
+      ],
+      "impact": "The requested visual placement is correct, but missing default data prevents end-to-end validation of progress updates and chart playback.",
+      "reproduction": [
+        "Open the rendered page and inspect the control row below the chart.",
+        "Observe that the current markup order is Run Chart, progress, Reset; with flex layout the progress is not on the left of Run Chart.",
+        "Inspect the area above the chart and verify that the GIF is visible, small, and loaded from /assets/link_anh_luffy_chay_transparent.gif.gif.",
+        "Run the chart and verify that a percentage label is visible and changes from 0% to 100%."
+      ],
+      "recommended_solutions": [
+        "Place the progress-control before playButton in the DOM or use an explicit CSS order so the percentage appears immediately to the left of Run Chart.",
+        "Keep Reset after Run Chart and maintain one coherent toolbar below the chart.",
+        "Set an explicitly small, responsive GIF size and reserve visible space above the chart without covering or pushing the chart unexpectedly.",
+        "Verify that the GIF route is served by FastAPI static assets; if /assets is not mounted, map the file to a served static path without renaming the original asset unexpectedly.",
+        "Keep the progress as a percentage-only visible label and update it through render/applyData/reset using the existing timer.",
+        "On narrow screens, keep progress and Run Chart on the same logical row where space allows, or document a deliberate responsive fallback that still preserves their association."
+      ],
+      "acceptance_criteria": [
+        "A small Luffy GIF is visibly rendered above the chart when the asset loads.",
+        "The progress percentage is visibly rendered immediately to the left of Run Chart.",
+        "The control order is progress, Run Chart, Reset in the desktop toolbar.",
+        "The percentage starts at 0%, updates during animation, and reaches exactly 100%.",
+        "The GIF failure fallback does not prevent the chart or controls from working.",
+        "The layout remains usable at narrow widths without hiding the progress or separating it ambiguously from Run Chart.",
+        "No Pause/Resume, Rewind, date selector, day selector, or range slider is introduced.",
+        "With valid default data available, the toolbar remains in the requested order and the progress updates during playback."
+      ],
+      "validation_plan": [
+        "Load the page and visually confirm the GIF above the chart.",
+        "Confirm the control row order is percentage, Run Chart, Reset.",
+        "Run the chart and observe 0% increasing to 100%.",
+        "Press Reset and confirm the label returns to 0%.",
+        "Test the GIF asset failure path and confirm the chart still works.",
+        "Resize to a narrow viewport and verify the intended relationship remains understandable."
+      ]
+    },
+    {
+      "id": "CHART-019",
+      "severity": "high",
+      "status": "resolved",
+      "title": "Default market data is missing, preventing chart and progress-bar verification",
+      "locations": [
+        "main.py:15-22",
+        "d:\\abf.csv",
+        "data\\abf.csv",
+        "templates/index.html:50-70"
+      ],
+      "conversation": {
+        "current_implementation": "The project contains abf.csv at D:\\Trading-board-web\\abf.csv. After restarting Uvicorn from D:\\Trading-board-web, GET /api/data returns HTTP 200 with 364 days.",
+        "observed_problem": "The earlier HTTP 404 was caused by the old server process running with stale context/source state; it no longer reproduces after a clean restart from the project directory.",
+        "required_behavior": "Provide the intended default abf.csv at one of the documented paths, configure ABF_DATA_PATH, or show an explicit setup state that clearly explains how to select/upload a CSV. Once data is available, the chart and progress must be testable end to end.",
+        "upload_validation": "Uploading the project abf.csv through the Ch?n CSV control succeeds. The UI reports ?? t?i 364 ng?y d? li?u, resets to day 0 and 0%, and Run Chart advances to day 7 / 2% before Reset returns it to day 0 / 0%.",
+        "csv_contract": [
+          "The uploaded file must have a .csv extension.",
+          "Each non-empty, non-comment row must contain exactly 7 numeric values.",
+          "Supported delimiters are comma, semicolon, tab, and vertical bar.",
+          "The first row is the previous trading day used as the reference baseline and is not displayed.",
+          "At least two valid rows are required: one baseline row and one displayed day.",
+          "The file must be UTF-8 or UTF-8 with BOM."
+        ]
+      },
+      "why_it_is_wrong_or_weak": [
+        "The chart cannot render market data on a fresh run without manual upload.",
+        "The progress indicator cannot demonstrate 0% to 100% behavior when count is zero.",
+        "The browser console reports a failed API resource request, making the page appear broken despite the HTML loading."
+      ],
+      "impact": "Resolved. The chart can now load data and the animation/progress flow can be tested end to end.",
+      "reproduction": [
+        "Start the current FastAPI application on port 8001.",
+        "Open the page and observe the GIF and toolbar load.",
+        "Call GET /api/data and receive HTTP 404 for missing abf.csv.",
+        "Observe the UI status 0/0 and progress 0%."
+      ],
+      "recommended_solutions": [
+        "Place a validated abf.csv at D:\\abf.csv or project data\\abf.csv for the intended demo environment.",
+        "Alternatively configure ABF_DATA_PATH to a valid CSV location before starting the server.",
+        "Keep the upload flow as a fallback and make the missing-data state explicit without treating it as a generic server failure.",
+        "After data is restored, verify animation, progress, Reset, warning handling, and the two-panel chart."
+      ],
+      "acceptance_criteria": [
+        "GET /api/data returns HTTP 200 with a valid count in the intended demo environment.",
+        "The page can run from 0% to 100% using the default or uploaded dataset.",
+        "Reset returns the progress to 0% and the chart to day 0.",
+        "Missing data produces a clear actionable setup message and does not generate unexplained console errors."
+      ],
+      "verified_resolution": [
+        "Direct backend check found D:\\Trading-board-web\\abf.csv and built a payload with 364 days.",
+        "GET /api/data returned HTTP 200 and count 364 after restarting Uvicorn from the project directory.",
+        "Browser loaded 364 days and the Run Chart action advanced to day 3 with progress at 1%.",
+        "The previous 0/0 state no longer appears after the clean restart."
+      ]
+    }
+  ],
+  "verified_facts": [
+    {
+      "fact": "CSV upload works for a file with the same structure as the current dataset.",
+      "evidence": "Browser upload of D:\\Trading-board-web\\abf.csv through #fileInput returned status ?? t?i 364 ng?y d? li?u, symbol ABF, and day count 364."
+    },
+    {
+      "fact": "Uploaded data can be animated and reset.",
+      "evidence": "After upload, Run Chart advanced from day 0 to day 7 and progress 2%; Reset returned day 0 and 0%."
+    },
+    {
+      "fact": "The upload parser expects seven numeric columns per data row.",
+      "evidence": "main.py parse_csv_line accepts comma, semicolon, tab, or vertical-bar delimiters and rejects rows that do not resolve to seven values."
+    }
+  ],
+  "recommended_fix_order": [
+    "CHART-017",
+    "CHART-018",
+    "CHART-016",
+    "CHART-015",
+    "CHART-014",
+    "CHART-013",
+    "CHART-012",
+    "CHART-002",
+    "CHART-003",
+    "CHART-009",
+    "CHART-007"
+  ],
+  "qa_conclusion": "CSV upload has been verified with the current abf.csv structure: 364 days load successfully, playback advances, and Reset works. Equivalent files must use seven numeric columns per row, include a baseline first row, contain at least two rows, and use UTF-8/UTF-8-BOM encoding."
+}

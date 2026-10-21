@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ABF Price Board</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">TRADING BOARD / YEARLY VIEW</p>
+          <h1><span id="symbol">ABF</span> Price Motion</h1>
+          <p class="subtitle">Biểu đồ mô phỏng 365 ngày giao dịch từ dữ liệu CSV</p>
+        </div>
+        <div class="controls">
+          <div class="upload-control">
+            <input id="fileInput" type="file" accept=".csv">
+            <label class="upload-button" for="fileInput">Chọn CSV</label>
+          </div>
+        </div>
+      </header>
+
+      <section class="status-row">
+        <div><span class="status-dot"></span><span id="statusText">Đang tải dữ liệu...</span></div>
+        <div class="day-counter">Ngày <strong id="dayNumber">0</strong> / <span id="dayCount">0</span></div>
+        <label class="speed-control">Tốc độ
+          <select id="speedSelect">
+            <option value="900">Chậm</option>
+            <option value="420" selected>Vừa</option>
+            <option value="150">Nhanh</option>
+          </select>
+        </label>
+      </section>
+
+      <!-- CHART-006: Legend hiển thị đầy đủ 5 màu nghiệp vụ -->
+      <section class="legend" aria-label="Chú thích màu">
+        <span><i class="swatch reference"></i>Tham chiếu (vàng)</span>
+        <span><i class="swatch floor"></i>Sàn 90% (xanh dương)</span>
+        <span><i class="swatch ceiling"></i>Trần 110% (tím)</span>
+        <span><i class="swatch down"></i>Giá giảm (đỏ)</span>
+        <span><i class="swatch up"></i>Giá tăng (xanh lá)</span>
+      </section>
+      <p class="chart-note">Nến được xếp liền nhau theo thứ tự hiển thị; nhãn trục giữ số ngày gốc. Trong biên, nến xanh/đỏ lần lượt là giá đóng cửa cao/thấp hơn tham chiếu; bằng tham chiếu là vàng, chạm sàn/trần là xanh dương/tím. Khi mật độ cao, một nến gộp phiên liên tiếp và giữ đỉnh, đáy của nhóm.</p>
+
+      <!-- CHART-004: Banner cảnh báo dữ liệu ngoài biên -->
+      <div id="warningBanner" class="warning-banner" role="alert" aria-live="polite"></div>
+
+      <section class="chart-card">
+        <div class="chart-toolbar" role="group" aria-label="Điều khiển biểu đồ">
+          <div class="progress-control">
+            <div id="progressTrack" class="progress-track">
+              <img id="luffyGif" src="/assets/link_anh_luffy_chay_transparent.gif.gif" alt="Luffy chạy theo tiến độ biểu đồ">
+              <progress id="chartProgress" max="100" value="0" aria-label="Tiến độ biểu đồ"></progress>
+            </div>
+            <span id="progressValue" aria-live="polite">0%</span>
+          </div>
+          <button id="playButton" class="primary-button" type="button" aria-label="Run chart">▶ Chạy biểu đồ</button>
+          <button id="resetButton" class="secondary-button" type="button" aria-label="Reset chart">↺ Đặt lại</button>
+        </div>
+        <!-- CHART-006: chart-heading hiển thị để theo dõi giá đóng cửa -->
+        <div class="chart-heading">
+          <div><h2>Biểu đồ giá theo ngày</h2><span id="chartHint">Nhấn "Chạy biểu đồ" để bắt đầu</span></div>
+          <div class="metric"><span>Giá đóng cửa</span><strong id="lastPrice">—</strong></div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="priceChart" aria-label="Biểu đồ giá gồm hai phần: nến giá theo ngày ở trên và vùng biên độ cùng đường giá đóng cửa ở dưới"></canvas>
+        </div>
+      </section>
+      <footer>Giá sàn và giá trần được tính theo giá đóng cửa của ngày giao dịch liền trước. Dòng CSV đầu tiên là ngày liền trước để xác định giá tham chiếu; dòng này không hiển thị.</footer>
+    </main>
+    <script src="/static/js/chart.js"></script>
+    <script src="/static/js/app.js"></script>
+  </body>
+</html>
