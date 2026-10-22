@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from analysis import build_analysis
 
 # Cấu hình đường dẫn dữ liệu và thư mục gốc của ứng dụng.
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -197,6 +198,7 @@ def build_payload(rows: list[list[float]], symbol: str = "ABF") -> dict[str, Any
         "symbol":     symbol.upper(),
         "days":       days,
         "count":      len(days),
+        "analysis":   build_analysis(days),
     }
 
 

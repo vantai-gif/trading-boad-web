@@ -159,6 +159,17 @@ h2 { margin: 0; color: var(--dark-blue); font-size: 18px; letter-spacing: -.02em
 .chart-wrap { height: min(70vh, 720px); min-height: 480px; padding: 12px; overflow: hidden; border: 1px solid var(--blue-line); border-radius: var(--radius-md); background: #F8FBFE; }
 canvas { display: block; width: 100%; height: 100%; }
 footer { padding: 17px 4px 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.analysis-card { margin-top: 18px; padding: 22px; background: var(--white); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-sm); }
+.analysis-heading { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+.analysis-heading h2, .analysis-card h3 { color: var(--dark-blue); }
+.analysis-heading h2 { margin: 0; font-size: 18px; }
+.analysis-heading span, .analysis-summary { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 16px; }
+.analysis-card h3 { margin: 0 0 8px; font-size: 14px; }
+.analysis-card table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.analysis-card th, .analysis-card td { padding: 7px 6px; border-bottom: 1px solid var(--border); text-align: right; }
+.analysis-card th:first-child, .analysis-card td:first-child { text-align: left; }
+@media (max-width: 760px) { .analysis-grid { grid-template-columns: 1fr; } }
 
 @media (max-width: 900px) {
   .app-shell { padding: 24px 24px; }

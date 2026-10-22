@@ -42,7 +42,7 @@
         <span><i class="swatch down"></i>Giá giảm (đỏ)</span>
         <span><i class="swatch up"></i>Giá tăng (xanh lá)</span>
       </section>
-      <p class="chart-note">Nến được xếp liền nhau theo thứ tự hiển thị; nhãn trục giữ số ngày gốc. Trong biên, nến xanh/đỏ lần lượt là giá đóng cửa cao/thấp hơn tham chiếu; bằng tham chiếu là vàng, chạm sàn/trần là xanh dương/tím. Khi mật độ cao, một nến gộp phiên liên tiếp và giữ đỉnh, đáy của nhóm.</p>
+      <p class="chart-note">Nến được xếp liền nhau theo thứ tự hiển thị; nhãn trục giữ số ngày gốc. Trong biên, nến xanh/đỏ lần lượt là giá đóng cửa cao/thấp hơn tham chiếu; bằng tham chiếu là vàng, chạm sàn/trần là xanh dương/tím. Đường giá đóng cửa dùng xanh cho đoạn tăng, đỏ cho đoạn giảm và màu trung tính khi không đổi. Khi mật độ cao, một nến gộp phiên liên tiếp và giữ đỉnh, đáy của nhóm.</p>
 
       <!-- CHART-004: Banner cảnh báo dữ liệu ngoài biên -->
       <div id="warningBanner" class="warning-banner" role="alert" aria-live="polite"></div>
@@ -66,6 +66,21 @@
         </div>
         <div class="chart-wrap">
           <canvas id="priceChart" aria-label="Biểu đồ giá gồm hai phần: nến giá theo ngày ở trên và vùng biên độ cùng đường giá đóng cửa ở dưới"></canvas>
+        </div>
+      </section>
+      <section class="analysis-card" aria-label="Phân tích thống kê">
+        <div class="analysis-heading">
+          <h2>Phân tích tháng, quý và bất thường</h2>
+          <span id="analysisBasis"></span>
+        </div>
+        <p id="trendSummary" class="analysis-summary">Đang tính toán...</p>
+        <div class="analysis-grid">
+          <div><h3>Giá trung bình và độ biến động theo tháng</h3><div id="monthlyTable"></div></div>
+          <div><h3>Biến động theo quý</h3><div id="quarterlyTable"></div></div>
+        </div>
+        <div class="analysis-grid">
+          <div><h3>Ngày giao dịch bất thường</h3><div id="anomalyTable"></div></div>
+          <div><h3>Phân bố giá Q1–Q2 / Q3–Q4</h3><div id="distributionSummary"></div></div>
         </div>
       </section>
       <footer>Giá sàn và giá trần được tính theo giá đóng cửa của ngày giao dịch liền trước. Dòng CSV đầu tiên là ngày liền trước để xác định giá tham chiếu; dòng này không hiển thị.</footer>

@@ -94,7 +94,29 @@ function applyData(nextData) {
   }
 
   TradingChart.setData(state.data);
+  renderAnalysis(nextData.analysis);
   render();
+}
+
+function renderAnalysis(analysis) {
+  if (!analysis) return;
+  document.querySelector("#analysisBasis").textContent = analysis.time_basis_note || "";
+  const format = (value) => money(value);
+  const rows = (items, key, label) => `<table><thead><tr><th>${label}</th><th>TB</th><th>ĐLC</th><th>Biên độ</th></tr></thead><tbody>${items.map((item) =>
+    `<tr><td>${item[key]}</td><td>${format(item.average_price)}</td><td>${format(item.volatility)}</td><td>${format(item.range)}</td></tr>`).join("")}</tbody></table>`;
+  document.querySelector("#monthlyTable").innerHTML = rows(analysis.monthly, "month_number", "Tháng");
+  document.querySelector("#quarterlyTable").innerHTML = rows(analysis.quarterly, "quarter_number", "Quý");
+  const anomalies = analysis.anomalies || [];
+  document.querySelector("#anomalyTable").innerHTML = anomalies.length
+    ? `<table><thead><tr><th>Phiên</th><th>Dấu hiệu</th></tr></thead><tbody>${anomalies.map((item) =>
+      `<tr><td>${item.trading_day}</td><td>${item.types.join(", ")}</td></tr>`).join("")}</tbody></table>`
+    : "<p>Không phát hiện giá sàn, trần, tham chiếu hoặc ngoài biên.</p>";
+  const overall = analysis.overall;
+  document.querySelector("#trendSummary").textContent =
+    `Xu hướng ${overall.direction}: ${format(overall.first_close)} → ${format(overall.last_close)} (${format(overall.change)}). ` +
+    `Biên độ toàn kỳ ${format(overall.maximum_range)}, từ phiên ${overall.range_low_day} đến phiên ${overall.range_high_day}; tháng dao động mạnh nhất: tháng ${overall.strongest_month}.`;
+  document.querySelector("#distributionSummary").innerHTML =
+    `<p>Q1–Q2: ${analysis.distributions.first_half.length} phiên · Q3–Q4: ${analysis.distributions.second_half.length} phiên.</p>`;
 }
 
 async function load(url) {

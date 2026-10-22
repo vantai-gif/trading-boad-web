@@ -273,18 +273,19 @@ const TradingChart = (() => {
     tx(`Đỉnh ${fmt(dynamicHigh)}`, right + 6, ghY + 4, CLR.guideHigh);
     tx(`Đáy ${fmt(dynamicLow)}`, right + 6, glY + 4, CLR.guideLow);
 
-    // Đường close (xanh lá đậm)
+    // Màu từng đoạn thể hiện close tăng/giảm so với phiên liền trước.
     ctx.save();
-    ctx.beginPath();
-    ctx.strokeStyle = CLR.closeLine;
-    ctx.lineWidth   = 1.8;
+    ctx.lineWidth = 1.8;
     ctx.setLineDash([]);
-    days.forEach((d, i) => {
-      i === 0
-        ? ctx.moveTo(cx(i), yPos(d.close, loTop))
-        : ctx.lineTo(cx(i), yPos(d.close, loTop));
-    });
-    ctx.stroke();
+    for (let i = 1; i < days.length; i += 1) {
+      const previous = days[i - 1], current = days[i];
+      ctx.strokeStyle = current.close > previous.close ? CLR.candleUp
+        : current.close < previous.close ? CLR.candleDown : CLR.closeLine;
+      ctx.beginPath();
+      ctx.moveTo(cx(i - 1), yPos(previous.close, loTop));
+      ctx.lineTo(cx(i), yPos(current.close, loTop));
+      ctx.stroke();
+    }
     ctx.restore();
 
     // Nhãn giá đóng cửa cuối

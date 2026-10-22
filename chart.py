@@ -289,16 +289,22 @@ def draw_chart(
     ax_lo.text(XDAYS + 2, guide_low, f"{guide_low:,.0f}",
                color=COLOR["guide_low"], va="center", fontsize=9)
 
-    # Đường close chính (xanh lá)
-    ax_lo.plot(x_vals, closes, color=COLOR["close_line"],
-               linewidth=1.6, zorder=3)
+    # Màu từng đoạn biểu thị chiều thay đổi của giá đóng cửa so với phiên trước.
+    for i in range(len(closes) - 1):
+        segment_color = COLOR["candle_up"] if closes[i + 1] > closes[i] else (
+            COLOR["candle_dn"] if closes[i + 1] < closes[i] else COLOR["text"]
+        )
+        ax_lo.plot(x_vals[i:i + 2], closes[i:i + 2], color=segment_color,
+                   linewidth=1.6, zorder=3)
+    if len(closes) == 1:
+        ax_lo.scatter(x_vals, closes, color=COLOR["text"], s=12, zorder=3)
 
     # Nhãn giá đóng cửa cuối
     if closes:
         ax_lo.text(x_vals[-1] + 1, closes[-1], f"{closes[-1]:,.0f}",
                    color=COLOR["close_line"], va="center", fontsize=9)
 
-    ax_lo.set_title("Diễn biến giá – đường close và biên độ",
+    ax_lo.set_title("Diễn biến giá – close xanh khi tăng, đỏ khi giảm",
                     loc="left", fontsize=10, color=COLOR["text"])
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
