@@ -1,0 +1,335 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Board</title>
+
+    <style>
+        :root {
+            --navy: #0B1F3A;
+            --navy-dark: #071426;
+            --blue: #145DA0;
+            --blue-soft: #EAF3FF;
+            --page: #F5F7FA;
+            --text: #172033;
+            --muted: #687386;
+            --border: #DCE3EC;
+            --up: #159957;
+            --down: #D64545;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: var(--text);
+            background: var(--page);
+        }
+
+        button, input { font-family: Arial, sans-serif; }
+
+        button {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--text);
+            cursor: pointer;
+        }
+
+        button.active {
+            border-color: var(--blue);
+            background: var(--blue-soft);
+            color: var(--blue);
+        }
+
+        .app-shell { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 220px;
+            flex: 0 0 220px;
+            padding: 24px 14px;
+            color: #fff;
+            background: var(--navy);
+        }
+
+        .brand { margin: 0 12px 32px; font-size: 20px; letter-spacing: .4px; }
+        .brand span { color: #7cb8ef; }
+        .nav-label { margin: 0 12px 8px; color: #91a4bd; font-size: 11px; text-transform: uppercase; }
+        .nav-list { display: grid; gap: 4px; margin-bottom: 28px; }
+        .nav-item { padding: 11px 12px; border-radius: 10px; color: #dbe7f5; font-size: 14px; }
+        .nav-item.active, .nav-item:hover { color: #fff; background: rgba(255, 255, 255, .12); }
+
+        .main-content { min-width: 0; flex: 1; }
+        .topbar { display: flex; align-items: center; gap: 16px; min-height: 72px; padding: 14px 28px; background: #fff; border-bottom: 1px solid var(--border); }
+        .search { width: min(360px, 100%); padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; color: var(--text); outline: none; }
+        .search:focus { border-color: var(--blue); }
+        .topbar-spacer { flex: 1; }
+        .account { padding: 9px 14px; color: var(--blue); font-weight: 700; }
+
+        .dashboard { max-width: 1500px; margin: 0 auto; padding: 24px 28px 32px; }
+        .card { background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 2px 8px rgba(11, 31, 58, .06); }
+        .metric-label { color: var(--muted); font-size: 12px; }
+        .positive { color: var(--up); }
+        .negative { color: var(--down); }
+
+        .chart-card { overflow: hidden; }
+        .chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px 12px; }
+        .instrument-name { margin: 0 0 5px; font-size: 18px; }
+        .instrument-price { margin: 0; color: var(--muted); font-size: 13px; }
+        .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 0 20px 14px; border-bottom: 1px solid var(--border); }
+        .toolbar-group { display: flex; flex-wrap: wrap; gap: 6px; }
+        .toolbar-divider { width: 1px; height: 22px; margin: 0 4px; background: var(--border); }
+        .toolbar button { min-width: 42px; padding: 7px 10px; font-size: 12px; }
+        #chart { width: 100%; height: 500px; }
+
+        .card { padding: 18px; }
+        .card-title { margin: 0 0 16px; font-size: 15px; }
+
+        @media (max-width: 900px) {
+            .sidebar { width: 72px; flex-basis: 72px; padding: 20px 8px; }
+            .brand { margin: 0 0 28px; text-align: center; font-size: 16px; }
+            .brand span, .nav-label { display: none; }
+            .nav-item { text-align: center; font-size: 0; }
+            .nav-item::first-letter { font-size: 18px; }
+            .dashboard { padding: 18px; }
+        }
+
+        @media (max-width: 620px) {
+            .topbar { padding: 12px 16px; }
+            .dashboard { padding: 14px; }
+            .chart-heading { align-items: flex-start; flex-direction: column; }
+            #chart { height: 380px; }
+        }
+    </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <h1 class="brand">Trade<span>Board</span></h1>
+      <p class="nav-label">Điều hướng</p>
+      <nav class="nav-list">
+        <div class="nav-item active">⌂ Tổng quan</div>
+        <div class="nav-item">▣ Danh mục</div>
+        <div class="nav-item">⚙ Cài đặt</div>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <input class="search" type="search" placeholder="Tìm mã cổ phiếu..." aria-label="Tìm mã cổ phiếu">
+        <div class="topbar-spacer"></div>
+        <button class="account">Tài khoản</button>
+      </header>
+
+      <section class="dashboard">
+        <section class="card chart-card">
+          <div class="chart-heading">
+            <div>
+              <h2 class="instrument-name">ABC · Biểu đồ giá</h2>
+              <p class="instrument-price">54,000 <span class="negative">-1,400 (-2.53%)</span></p>
+            </div>
+            <span class="metric-label">Cập nhật theo dữ liệu thị trường</span>
+          </div>
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <button class="active" data-type="candles">Nến</button>
+              <button data-type="area">Khu vực</button>
+              <button data-type="line">Đường</button>
+            </div>
+            <span class="toolbar-divider"></span>
+            <div class="toolbar-group">
+              <button data-range="1D">1D</button>
+              <button data-range="1W">1W</button>
+              <button class="active" data-range="1M">1M</button>
+            </div>
+          </div>
+          <div id="chart"></div>
+        </section>
+
+      </section>
+    </main>
+  </div>
+
+    <script src="https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js"></script>
+
+    <script id="chart">
+        // 1. Khởi tạo biểu đồ
+        const chart = LightweightCharts.createChart(
+            document.getElementById('chart'),
+            {
+                width: document.getElementById('chart').clientWidth,
+                height: document.getElementById('chart').clientHeight,
+                layout: {
+                    textColor: '#687386',
+                    background: {
+                        type: 'solid',
+                        color: '#FFFFFF'
+                    }
+                },
+                grid: {
+                    vertLines: { color: '#EEF1F5' },
+                    horzLines: { color: '#EEF1F5' }
+                },
+                rightPriceScale: { borderColor: '#DCE3EC' },
+                timeScale: { borderColor: '#DCE3EC', timeVisible: true }
+            }
+        );
+
+        // 2. Tạo biểu đồ nến
+        const candlestickSeries = chart.addSeries(
+            LightweightCharts.CandlestickSeries,
+            {
+                upColor: '#26a69a',
+                downColor: '#ef5350',
+                borderVisible: false,
+                wickUpColor: '#26a69a',
+                wickDownColor: '#ef5350'
+            }
+        );
+
+        // Giữ series nến cũ và chỉ thay series đang hiển thị khi đổi loại biểu đồ.
+        let currentSeries = candlestickSeries;
+        let currentChartType = 'candles';
+
+
+        let allCandles = [];
+        const rangeDays = {
+            '1D': 1,
+            '1W': 7,
+            '1M': 30
+        };
+
+
+        function aggregateCandles(candles) {
+            const firstCandle = candles[0];
+            const lastCandle = candles[candles.length - 1];
+
+            return {
+                time: firstCandle.time,
+                open: firstCandle.open,
+                high: Math.max(...candles.map(candle => candle.high)),
+                low: Math.min(...candles.map(candle => candle.low)),
+                close: lastCandle.close
+            };
+        }
+
+        // Chia toàn bộ dữ liệu thành các nhóm 1, 7 hoặc 30 ngày.
+        function updateChartByRange(range) {
+            if (!allCandles.length || !rangeDays[range]) return;
+
+            const daysPerCandle = rangeDays[range];
+            const aggregatedCandles = [];
+
+            for (let index = 0; index < allCandles.length; index += daysPerCandle) {
+                const candleGroup = allCandles.slice(index, index + daysPerCandle);
+                aggregatedCandles.push(aggregateCandles(candleGroup));
+            }
+
+            if (currentChartType === 'area' || currentChartType === 'line') {
+                currentSeries.setData(
+                    aggregatedCandles.map(candle => ({
+                        time: candle.time,
+                        value: candle.close
+                    }))
+                );
+            } else {
+                currentSeries.setData(aggregatedCandles);
+            }
+            chart.timeScale().fitContent();
+        }
+// Tìm hiểu thêm tại sao sort new Date(a.time) - new Date(b.time) lại được sử dụng trong đoạn code trên.
+        fetch('./data.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Không thể tải dữ liệu: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                allCandles = data
+                    .sort((a, b) => new Date(a.time) - new Date(b.time))
+                    .map(candle => ({
+                        ...candle,
+                        time: candle.time.slice(0, 10)
+                    }));
+
+                updateChartByRange('1M');
+            })
+            .catch(error => console.error('Lỗi dữ liệu biểu đồ:', error));
+
+        // 4. Lắng nghe thao tác chọn khung thời gian
+        document.querySelectorAll('[data-range]').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('[data-range]').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                button.classList.add('active');
+                updateChartByRange(button.dataset.range);
+            });
+        });
+
+        // 5. Chuyển đổi loại biểu đồ mà không thay đổi giao diện hiện tại.
+        document.querySelectorAll('[data-type]').forEach(button => {
+            button.addEventListener('click', () => {
+                const nextType = button.dataset.type;
+                if (nextType === currentChartType) return;
+
+                document.querySelectorAll('[data-type]').forEach(item => {
+                    item.classList.remove('active');
+                });
+                button.classList.add('active');
+
+                chart.removeSeries(currentSeries);
+
+                if (nextType === 'area') {
+                    currentSeries = chart.addSeries(
+                        LightweightCharts.AreaSeries,
+                        {
+                            lineColor: '#2563eb',
+                            topColor: 'rgba(37, 99, 235, 0.25)',
+                            bottomColor: 'rgba(37, 99, 235, 0.02)',
+                            lineWidth: 2
+                        }
+                    );
+                } else if (nextType === 'line') {
+                    currentSeries = chart.addSeries(
+                        LightweightCharts.LineSeries,
+                        {
+                            color: '#145DA0',
+                            lineWidth: 2
+                        }
+                    );
+                } else {
+                    currentSeries = chart.addSeries(
+                        LightweightCharts.CandlestickSeries,
+                        {
+                            upColor: '#26a69a',
+                            downColor: '#ef5350',
+                            borderVisible: false,
+                            wickUpColor: '#26a69a',
+                            wickDownColor: '#ef5350'
+                        }
+                    );
+                }
+
+                currentChartType = nextType;
+                updateChartByRange(document.querySelector('[data-range].active')?.dataset.range || '1M');
+            });
+        });
+
+        // 6. Điều chỉnh kích thước khi thay đổi cửa sổ
+        window.addEventListener('resize', () => {
+            chart.applyOptions({
+                width: document.getElementById('chart').clientWidth,
+                height: document.getElementById('chart').clientHeight
+            });
+        });
+    </script>
+
+</body>
+</html>

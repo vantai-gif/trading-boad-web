@@ -1,9 +1,0 @@
-{
-  "1.": "Sử dụng ```pandas``` in ra bảng giá trung bình của mỗi tháng và độ biến động giá (độ lệch chuẩn) của mỗi tháng. Viết nhận xét. Vẽ biểu đồ cột biểu diễn giá trung bình của mỗi tháng. Vẽ biểu đồ hộp (boxplot) về giá của mỗi tháng và giải thích, nhận xét.",
-  "Xác định tháng có biên độ giá dao động mạnh nhất.": "1. Đánh giá biến động giá trên từng quý.",
-  "2.": "Đánh giá biến động giá trên từng quý.",
-  "3.": "Tìm và liệt kê dưới dạng bảng ```pandas``` ngày giao dịch có yếu tố bất thường (giá giao dịch bằng giá sàn, hoặc bằng giá trần, hoặc bằng giá tham chiếu, ...)",
-  "4.": "Vẽ tổ chức đồ phân bố giá của 2 quý đầu năm và 2 quý cuối năm.",
-  "5.": "Đánh giá xu hướng biến động giá trong cả năm. Biên độ dao động giá lớn nhất là bao nhiêu? xảy ra ở thời điểm nào?",,
-  "6.": "Vì sao đường biểu diễn đi xuống nhưng có màu xanh?"
-}
