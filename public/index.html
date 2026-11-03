@@ -165,6 +165,7 @@
                 height: document.getElementById('chart').clientHeight,
                 layout: {
                     textColor: '#687386',
+                    fontSize: 18,
                     background: {
                         type: 'solid',
                         color: '#FFFFFF'
@@ -183,11 +184,13 @@
         const candlestickSeries = chart.addSeries(
             LightweightCharts.CandlestickSeries,
             {
-                upColor: '#26a69a',
-                downColor: '#ef5350',
-                borderVisible: false,
-                wickUpColor: '#26a69a',
-                wickDownColor: '#ef5350'
+                upColor: '#00CA73',
+                downColor: '#FF6960',
+                borderVisible: true,
+                borderUpColor: '#000000',
+                borderDownColor: '#000000',
+                wickUpColor: '#000000',
+                wickDownColor: '#000000'
             }
         );
 
@@ -199,10 +202,12 @@
         let allCandles = [];
         const rangeDays = {
             '1D': 1,
-            '1W': 7,
-            '1M': 30
+            '1W': 7
         };
 
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
 
         function aggregateCandles(candles) {
             const firstCandle = candles[0];
@@ -217,17 +222,34 @@
             };
         }
 
-        // Chia toàn bộ dữ liệu thành các nhóm 1, 7 hoặc 30 ngày.
-        function updateChartByRange(range) {
-            if (!allCandles.length || !rangeDays[range]) return;
+        function getCandleGroups(range) {
+            const groups = [];
+            let index = 0;
 
-            const daysPerCandle = rangeDays[range];
-            const aggregatedCandles = [];
+            while (index < allCandles.length) {
+                let daysPerCandle;
 
-            for (let index = 0; index < allCandles.length; index += daysPerCandle) {
-                const candleGroup = allCandles.slice(index, index + daysPerCandle);
-                aggregatedCandles.push(aggregateCandles(candleGroup));
+                if (range === '1M') {
+                    const [year, month] = allCandles[index].time.split('-').map(Number);
+                    daysPerCandle = getDaysInMonth(year, month);
+                } else {
+                    daysPerCandle = rangeDays[range];
+                }
+
+                if (!daysPerCandle) return [];
+
+                groups.push(allCandles.slice(index, index + daysPerCandle));
+                index += daysPerCandle;
             }
+
+            return groups;
+        }
+
+        // Chia dữ liệu theo ngày, tuần hoặc đúng số ngày của từng tháng.
+        function updateChartByRange(range) {
+            if (!allCandles.length) return;
+
+            const aggregatedCandles = getCandleGroups(range).map(aggregateCandles);
 
             if (currentChartType === 'area' || currentChartType === 'line') {
                 currentSeries.setData(
@@ -241,7 +263,7 @@
             }
             chart.timeScale().fitContent();
         }
-// Tìm hiểu thêm tại sao sort new Date(a.time) - new Date(b.time) lại được sử dụng trong đoạn code trên.
+
         fetch('./data.json')
             .then(response => {
                 if (!response.ok) {
@@ -308,11 +330,13 @@
                     currentSeries = chart.addSeries(
                         LightweightCharts.CandlestickSeries,
                         {
-                            upColor: '#26a69a',
-                            downColor: '#ef5350',
-                            borderVisible: false,
-                            wickUpColor: '#26a69a',
-                            wickDownColor: '#ef5350'
+                            upColor: '#00CA73',
+                            downColor: '#FF6960',
+                            borderVisible: true,
+                            borderUpColor: '#000000',
+                            borderDownColor: '#000000',
+                            wickUpColor: '#000000',
+                            wickDownColor: '#000000'
                         }
                     );
                 }
